@@ -3,19 +3,23 @@ import type {
   ThemeAttribute,
   ThemePreference,
   ThemeSource,
-  ThemeState
+  ThemeState,
+  ThemeVariables
 } from "./types";
 
 interface StoreConfig {
   storageKey: string;
   attribute: ThemeAttribute;
   defaultTheme: ThemePreference;
+  variables?: ThemeVariables;
+  enableColorScheme: boolean;
 }
 
 const DEFAULT_CONFIG: StoreConfig = {
   storageKey: "theme-watcher",
   attribute: "data-theme",
-  defaultTheme: "system"
+  defaultTheme: "system",
+  enableColorScheme: true
 };
 
 const VALID_PREFERENCES = new Set<ThemePreference>(["light", "dark", "system"]);
@@ -98,6 +102,34 @@ function applyDomTheme(resolvedTheme: Theme) {
   root.setAttribute("data-theme", resolvedTheme);
 }
 
+function applyThemeVariables(resolvedTheme: Theme) {
+  if (!isBrowserReady()) return;
+  const root = document.documentElement;
+  const lightVars = config.variables?.light ?? {};
+  const darkVars = config.variables?.dark ?? {};
+  const allKeys = new Set([...Object.keys(lightVars), ...Object.keys(darkVars)]);
+
+  for (const key of allKeys) {
+    root.style.removeProperty(key);
+  }
+
+  const nextVars = config.variables?.[resolvedTheme];
+  if (!nextVars) return;
+
+  for (const [key, value] of Object.entries(nextVars)) {
+    root.style.setProperty(key, value);
+  }
+}
+
+function applyColorScheme(resolvedTheme: Theme) {
+  if (!isBrowserReady()) return;
+  if (!config.enableColorScheme) {
+    document.documentElement.style.removeProperty("color-scheme");
+    return;
+  }
+  document.documentElement.style.setProperty("color-scheme", resolvedTheme);
+}
+
 function emit() {
   for (const callback of subscribers) {
     callback();
@@ -108,6 +140,8 @@ function recompute() {
   const stored = readStoredTheme();
   state = resolveTheme(controlledTheme, stored, config.defaultTheme);
   applyDomTheme(state.resolvedTheme);
+  applyThemeVariables(state.resolvedTheme);
+  applyColorScheme(state.resolvedTheme);
   emit();
 }
 
@@ -174,6 +208,8 @@ export function setTheme(theme: ThemePreference) {
   writeStoredTheme(theme);
   state = resolveTheme(controlledTheme, theme, config.defaultTheme);
   applyDomTheme(state.resolvedTheme);
+  applyThemeVariables(state.resolvedTheme);
+  applyColorScheme(state.resolvedTheme);
   emit();
 }
 

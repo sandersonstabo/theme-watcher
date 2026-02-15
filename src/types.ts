@@ -6,6 +6,8 @@ export type ThemeSource = "prop" | "storage" | "default" | "system";
 
 export type ThemeAttribute = "data-theme" | "class";
 
+export type ThemeVariables = Partial<Record<Theme, Record<string, string>>>;
+
 export interface ThemeState {
   theme: ThemePreference;
   resolvedTheme: Theme;
@@ -17,6 +19,8 @@ export interface ThemeWatcherProps {
   storageKey?: string;
   attribute?: ThemeAttribute;
   defaultTheme?: ThemePreference;
+  variables?: ThemeVariables;
+  enableColorScheme?: boolean;
 }
 
 export interface ThemeApi extends ThemeState {

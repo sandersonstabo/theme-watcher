@@ -6,11 +6,13 @@ export function ThemeWatcher({
   theme,
   storageKey = "theme-watcher",
   attribute = "data-theme",
-  defaultTheme = "system"
+  defaultTheme = "system",
+  variables,
+  enableColorScheme = true
 }: ThemeWatcherProps) {
   useEffect(() => {
-    return mountWatcher({ storageKey, attribute, defaultTheme }, theme);
-  }, [theme, storageKey, attribute, defaultTheme]);
+    return mountWatcher({ storageKey, attribute, defaultTheme, variables, enableColorScheme }, theme);
+  }, [theme, storageKey, attribute, defaultTheme, variables, enableColorScheme]);
 
   return null;
 }

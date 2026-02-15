@@ -59,6 +59,9 @@ describe("theme-watcher", () => {
   beforeEach(() => {
     document.documentElement.removeAttribute("data-theme");
     document.documentElement.classList.remove("dark", "light");
+    document.documentElement.style.removeProperty("--background");
+    document.documentElement.style.removeProperty("--foreground");
+    document.documentElement.style.removeProperty("color-scheme");
     localStorage.clear();
     resetStoreForTests();
   });
@@ -147,6 +150,48 @@ describe("theme-watcher", () => {
     render(<ThemeWatcher attribute="class" />);
     expect(document.documentElement.classList.contains("dark")).toBe(true);
     expect(document.documentElement.classList.contains("light")).toBe(false);
+  });
+
+  it("applies css variables for the active theme", () => {
+    mockMatchMedia(true);
+    render(
+      <ThemeWatcher
+        variables={{
+          light: { "--background": "#ffffff", "--foreground": "#111111" },
+          dark: { "--background": "#111111", "--foreground": "#ffffff" }
+        }}
+      />
+    );
+
+    expect(document.documentElement.style.getPropertyValue("--background")).toBe("#111111");
+    expect(document.documentElement.style.getPropertyValue("--foreground")).toBe("#ffffff");
+  });
+
+  it("updates css variables when mode changes", () => {
+    mockMatchMedia(false);
+    render(
+      <ThemeWatcher
+        variables={{
+          light: { "--background": "#ffffff" },
+          dark: { "--background": "#111111" }
+        }}
+      />
+    );
+    const { result } = renderHook(() => useTheme());
+
+    expect(document.documentElement.style.getPropertyValue("--background")).toBe("#ffffff");
+    result.current.set("dark");
+    expect(document.documentElement.style.getPropertyValue("--background")).toBe("#111111");
+  });
+
+  it("sets color-scheme by default and can disable it", () => {
+    mockMatchMedia(true);
+    const first = render(<ThemeWatcher />);
+    expect(document.documentElement.style.getPropertyValue("color-scheme")).toBe("dark");
+    first.unmount();
+
+    render(<ThemeWatcher enableColorScheme={false} />);
+    expect(document.documentElement.style.getPropertyValue("color-scheme")).toBe("");
   });
 
   it("avoids duplicate media listeners across multiple mounts", () => {

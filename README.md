@@ -40,6 +40,8 @@ Props:
 - `storageKey?: string` default: `"theme-watcher"`
 - `attribute?: "data-theme" | "class"` default: `"data-theme"`
 - `defaultTheme?: "light" | "dark" | "system"` default: `"system"`
+- `enableColorScheme?: boolean` default: `true`
+- `variables?: { light?: Record<string, string>; dark?: Record<string, string> }`
 
 ### `useTheme()`
 
@@ -56,6 +58,32 @@ Returns:
 - `system` mode updates live when `prefers-color-scheme` changes.
 - Cross-tab updates are synced through `storage` events.
 - Package is ESM-only.
+
+## CSS variable support
+
+```tsx
+<ThemeWatcher
+  variables={{
+    light: {
+      "--background": "#ffffff",
+      "--foreground": "#111111"
+    },
+    dark: {
+      "--background": "#111111",
+      "--foreground": "#ffffff"
+    }
+  }}
+/>
+```
+
+Then in CSS:
+
+```css
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+```
 
 ## Development
 
