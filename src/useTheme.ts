@@ -14,6 +14,7 @@ export function useTheme(): ThemeApi {
   return {
     ...state,
     set: setTheme,
+    setTheme,
     get: getTheme
   };
 }

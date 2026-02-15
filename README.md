@@ -38,7 +38,7 @@ Mount once near your app root.
 Props:
 - `theme?: "light" | "dark"` controlled override
 - `storageKey?: string` default: `"theme-watcher"`
-- `attribute?: "data-theme" | "class"` default: `"data-theme"`
+- `attribute?: "data-theme" | "class" | "both"` default: `"both"`
 - `defaultTheme?: "light" | "dark" | "system"` default: `"system"`
 - `enableColorScheme?: boolean` default: `true`
 - `variables?: { light?: Record<string, string>; dark?: Record<string, string> }`
@@ -50,6 +50,7 @@ Returns:
 - `resolvedTheme` active applied theme (`"light" | "dark"`)
 - `source` where the current value came from (`"prop" | "storage" | "default" | "system"`)
 - `set(theme)` set and persist preference
+- `setTheme(theme)` alias for compatibility with next-themes-style usage
 - `get()` get persisted preference
 
 ## Behavior notes
@@ -57,6 +58,7 @@ Returns:
 - Priority order: `theme prop` -> `localStorage` -> `defaultTheme` -> system theme.
 - `system` mode updates live when `prefers-color-scheme` changes.
 - Cross-tab updates are synced through `storage` events.
+- By default, it applies both `data-theme` and `html.dark` so Tailwind/shadcn and CSS-var setups both work.
 - Package is ESM-only.
 
 ## CSS variable support

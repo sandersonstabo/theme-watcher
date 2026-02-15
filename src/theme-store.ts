@@ -17,7 +17,7 @@ interface StoreConfig {
 
 const DEFAULT_CONFIG: StoreConfig = {
   storageKey: "theme-watcher",
-  attribute: "data-theme",
+  attribute: "both",
   defaultTheme: "system",
   enableColorScheme: true
 };
@@ -93,9 +93,12 @@ function applyDomTheme(resolvedTheme: Theme) {
   if (!isBrowserReady()) return;
   const root = document.documentElement;
 
-  if (config.attribute === "class") {
+  if (config.attribute === "class" || config.attribute === "both") {
     root.classList.toggle("dark", resolvedTheme === "dark");
-    root.classList.toggle("light", resolvedTheme === "light");
+    root.classList.remove("light");
+  }
+
+  if (config.attribute === "class") {
     return;
   }
 

@@ -76,6 +76,7 @@ describe("theme-watcher", () => {
     mockMatchMedia(true);
     render(<ThemeWatcher />);
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
 
   it("supports controlled theme prop override", () => {
@@ -150,6 +151,15 @@ describe("theme-watcher", () => {
     render(<ThemeWatcher attribute="class" />);
     expect(document.documentElement.classList.contains("dark")).toBe(true);
     expect(document.documentElement.classList.contains("light")).toBe(false);
+  });
+
+  it("exposes setTheme alias for next-themes-like usage", () => {
+    mockMatchMedia(false);
+    render(<ThemeWatcher />);
+    const { result } = renderHook(() => useTheme());
+
+    result.current.setTheme("dark");
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
 
   it("applies css variables for the active theme", () => {

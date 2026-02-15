@@ -5,7 +5,7 @@ import type { ThemeWatcherProps } from "./types";
 export function ThemeWatcher({
   theme,
   storageKey = "theme-watcher",
-  attribute = "data-theme",
+  attribute = "both",
   defaultTheme = "system",
   variables,
   enableColorScheme = true
