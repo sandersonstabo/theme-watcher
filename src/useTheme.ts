@@ -1,20 +1,16 @@
 import { useSyncExternalStore } from "react";
-import {
-  getServerSnapshot,
-  getState,
-  getTheme,
-  setTheme,
-  subscribe
-} from "./theme-store";
-import type { ThemeApi } from "./types";
+import { subscribe, getSnapshot, setTheme, getTheme } from "./store";
+import type { UseThemeReturn } from "./types";
 
-export function useTheme(): ThemeApi {
-  const state = useSyncExternalStore(subscribe, getState, getServerSnapshot);
+const serverSnapshot = { theme: "system" as const, resolvedTheme: "light" as const, systemTheme: "light" as const };
+
+export function useTheme(): UseThemeReturn {
+  const state = useSyncExternalStore(subscribe, getSnapshot, () => serverSnapshot);
 
   return {
     ...state,
-    set: setTheme,
     setTheme,
-    get: getTheme
+    set: setTheme,
+    get: getTheme,
   };
 }

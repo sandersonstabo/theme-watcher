@@ -1,18 +1,43 @@
-import { useEffect } from "react";
-import { mountWatcher } from "./theme-store";
+import { useEffect, useRef } from "react";
+import { mount, configure } from "./store";
 import type { ThemeWatcherProps } from "./types";
 
 export function ThemeWatcher({
   theme,
-  storageKey = "theme-watcher",
-  attribute = "both",
   defaultTheme = "system",
-  variables,
-  enableColorScheme = true
+  storageKey = "theme",
+  attribute = "class",
+  enableColorScheme = true,
+  disableTransitionOnChange = false,
 }: ThemeWatcherProps) {
+  const firstMount = useRef(true);
+
   useEffect(() => {
-    return mountWatcher({ storageKey, attribute, defaultTheme, variables, enableColorScheme }, theme);
-  }, [theme, storageKey, attribute, defaultTheme, variables, enableColorScheme]);
+    return mount({
+      defaultTheme,
+      storageKey,
+      attribute,
+      enableColorScheme,
+      disableTransitionOnChange,
+      forcedTheme: theme,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (firstMount.current) {
+      firstMount.current = false;
+      return;
+    }
+
+    configure({
+      defaultTheme,
+      storageKey,
+      attribute,
+      enableColorScheme,
+      disableTransitionOnChange,
+      forcedTheme: theme,
+    });
+  }, [theme, defaultTheme, storageKey, attribute, enableColorScheme, disableTransitionOnChange]);
 
   return null;
 }

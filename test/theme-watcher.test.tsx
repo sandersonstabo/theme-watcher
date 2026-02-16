@@ -1,69 +1,49 @@
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, renderHook } from "@testing-library/react";
+import { cleanup, render, renderHook, act } from "@testing-library/react";
 import { ThemeWatcher, useTheme } from "../src";
-import { resetStoreForTests } from "../src/theme-store";
+import { _reset } from "../src/store";
 
-function mockMatchMedia(initialDark: boolean) {
-  let isDark = initialDark;
-  const listeners = new Set<(event: MediaQueryListEvent) => void>();
-  const listenerMap = new Map<
-    EventListenerOrEventListenerObject,
-    (event: MediaQueryListEvent) => void
-  >();
+const MEDIA = "(prefers-color-scheme: dark)";
 
-  const toHandler = (listener: EventListenerOrEventListenerObject) => {
-    const existing = listenerMap.get(listener);
-    if (existing) return existing;
+function mockMedia(dark: boolean) {
+  const listeners = new Set<(e: MediaQueryListEvent) => void>();
 
-    let handler: (event: MediaQueryListEvent) => void;
-    if (typeof listener === "function") {
-      handler = listener as (event: MediaQueryListEvent) => void;
-    } else {
-      handler = (event: MediaQueryListEvent) => listener.handleEvent(event);
-    }
-    listenerMap.set(listener, handler);
-    return handler;
-  };
-
-  const mql = {
-    matches: isDark,
-    media: "(prefers-color-scheme: dark)",
+  const mql: MediaQueryList = {
+    matches: dark,
+    media: MEDIA,
     onchange: null,
-    addEventListener: vi.fn((_type: string, listener: EventListenerOrEventListenerObject) => {
-      listeners.add(toHandler(listener));
+    addEventListener: vi.fn((_: string, fn: EventListenerOrEventListenerObject) => {
+      listeners.add(fn as (e: MediaQueryListEvent) => void);
     }),
-    removeEventListener: vi.fn((_type: string, listener: EventListenerOrEventListenerObject) => {
-      listeners.delete(toHandler(listener));
+    removeEventListener: vi.fn((_: string, fn: EventListenerOrEventListenerObject) => {
+      listeners.delete(fn as (e: MediaQueryListEvent) => void);
     }),
     addListener: vi.fn(),
     removeListener: vi.fn(),
-    dispatchEvent: vi.fn()
-  } satisfies MediaQueryList;
+    dispatchEvent: vi.fn(),
+  };
 
   vi.stubGlobal("matchMedia", vi.fn(() => mql));
 
   return {
     mql,
-    setDarkMode(next: boolean) {
-      isDark = next;
-      mql.matches = next;
-      for (const listener of listeners) {
-        listener({ matches: next } as MediaQueryListEvent);
-      }
-    }
+    toggle(next: boolean) {
+      (mql as { matches: boolean }).matches = next;
+      for (const fn of listeners) fn({ matches: next } as MediaQueryListEvent);
+    },
   };
 }
 
-describe("theme-watcher", () => {
+const html = () => document.documentElement;
+
+describe("ThemeWatcher", () => {
   beforeEach(() => {
-    document.documentElement.removeAttribute("data-theme");
-    document.documentElement.classList.remove("dark", "light");
-    document.documentElement.style.removeProperty("--background");
-    document.documentElement.style.removeProperty("--foreground");
-    document.documentElement.style.removeProperty("color-scheme");
+    html().className = "";
+    html().removeAttribute("data-theme");
+    html().style.cssText = "";
     localStorage.clear();
-    resetStoreForTests();
+    _reset();
   });
 
   afterEach(() => {
@@ -72,147 +52,161 @@ describe("theme-watcher", () => {
     vi.restoreAllMocks();
   });
 
-  it("applies system preference by default", () => {
-    mockMatchMedia(true);
+  it("applies dark class when system prefers dark", () => {
+    mockMedia(true);
     render(<ThemeWatcher />);
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(html().classList.contains("dark")).toBe(true);
   });
 
-  it("supports controlled theme prop override", () => {
-    mockMatchMedia(false);
-    render(<ThemeWatcher theme="dark" />);
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-  });
-
-  it("set/get updates and persists preference", () => {
-    mockMatchMedia(false);
+  it("applies light class when system prefers light", () => {
+    mockMedia(false);
     render(<ThemeWatcher />);
-    const { result } = renderHook(() => useTheme());
-
-    result.current.set("dark");
-    expect(result.current.get()).toBe("dark");
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-    expect(localStorage.getItem("theme-watcher")).toBe("dark");
+    expect(html().classList.contains("light")).toBe(true);
   });
 
-  it("ignores invalid stored values and falls back to default", () => {
-    mockMatchMedia(false);
-    localStorage.setItem("theme-watcher", "blue");
-    render(<ThemeWatcher defaultTheme="light" />);
-    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
-  });
-
-  it("updates when system preference changes if theme is system", () => {
-    const media = mockMatchMedia(false);
-    render(<ThemeWatcher defaultTheme="system" />);
-
-    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
-    media.setDarkMode(true);
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-  });
-
-  it("does not override explicit user theme on system changes", () => {
-    const media = mockMatchMedia(false);
+  it("sets color-scheme on html", () => {
+    mockMedia(true);
     render(<ThemeWatcher />);
-    const { result } = renderHook(() => useTheme());
-
-    result.current.set("dark");
-    media.setDarkMode(false);
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(html().style.colorScheme).toBe("dark");
   });
 
-  it("syncs theme updates through storage events", () => {
-    mockMatchMedia(false);
-    render(<ThemeWatcher />);
-
-    window.dispatchEvent(
-      new StorageEvent("storage", {
-        key: "theme-watcher",
-        newValue: "dark",
-        storageArea: localStorage
-      })
-    );
-    localStorage.setItem("theme-watcher", "dark");
-
-    window.dispatchEvent(
-      new StorageEvent("storage", {
-        key: "theme-watcher",
-        newValue: "dark",
-        storageArea: localStorage
-      })
-    );
-
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-  });
-
-  it("supports class attribute mode", () => {
-    mockMatchMedia(true);
-    render(<ThemeWatcher attribute="class" />);
-    expect(document.documentElement.classList.contains("dark")).toBe(true);
-    expect(document.documentElement.classList.contains("light")).toBe(false);
-  });
-
-  it("exposes setTheme alias for next-themes-like usage", () => {
-    mockMatchMedia(false);
-    render(<ThemeWatcher />);
-    const { result } = renderHook(() => useTheme());
-
-    result.current.setTheme("dark");
-    expect(document.documentElement.classList.contains("dark")).toBe(true);
-  });
-
-  it("applies css variables for the active theme", () => {
-    mockMatchMedia(true);
-    render(
-      <ThemeWatcher
-        variables={{
-          light: { "--background": "#ffffff", "--foreground": "#111111" },
-          dark: { "--background": "#111111", "--foreground": "#ffffff" }
-        }}
-      />
-    );
-
-    expect(document.documentElement.style.getPropertyValue("--background")).toBe("#111111");
-    expect(document.documentElement.style.getPropertyValue("--foreground")).toBe("#ffffff");
-  });
-
-  it("updates css variables when mode changes", () => {
-    mockMatchMedia(false);
-    render(
-      <ThemeWatcher
-        variables={{
-          light: { "--background": "#ffffff" },
-          dark: { "--background": "#111111" }
-        }}
-      />
-    );
-    const { result } = renderHook(() => useTheme());
-
-    expect(document.documentElement.style.getPropertyValue("--background")).toBe("#ffffff");
-    result.current.set("dark");
-    expect(document.documentElement.style.getPropertyValue("--background")).toBe("#111111");
-  });
-
-  it("sets color-scheme by default and can disable it", () => {
-    mockMatchMedia(true);
-    const first = render(<ThemeWatcher />);
-    expect(document.documentElement.style.getPropertyValue("color-scheme")).toBe("dark");
-    first.unmount();
-
+  it("does not set color-scheme when disabled", () => {
+    mockMedia(true);
     render(<ThemeWatcher enableColorScheme={false} />);
-    expect(document.documentElement.style.getPropertyValue("color-scheme")).toBe("");
+    expect(html().style.colorScheme).toBe("");
   });
 
-  it("avoids duplicate media listeners across multiple mounts", () => {
-    const media = mockMatchMedia(false);
-    render(
-      <>
-        <ThemeWatcher />
-        <ThemeWatcher />
-      </>
-    );
+  it("uses forced theme prop over everything", () => {
+    mockMedia(false);
+    localStorage.setItem("theme", "light");
+    render(<ThemeWatcher theme="dark" />);
+    expect(html().classList.contains("dark")).toBe(true);
+  });
 
+  it("reads stored preference from localStorage", () => {
+    mockMedia(false);
+    localStorage.setItem("theme", "dark");
+    render(<ThemeWatcher />);
+    expect(html().classList.contains("dark")).toBe(true);
+  });
+
+  it("ignores invalid localStorage values", () => {
+    mockMedia(false);
+    localStorage.setItem("theme", "purple");
+    render(<ThemeWatcher defaultTheme="light" />);
+    expect(html().classList.contains("light")).toBe(true);
+  });
+
+  it("supports data-theme attribute mode", () => {
+    mockMedia(true);
+    render(<ThemeWatcher attribute="data-theme" />);
+    expect(html().getAttribute("data-theme")).toBe("dark");
+    expect(html().classList.contains("dark")).toBe(false);
+  });
+
+  it("reacts to system theme changes when preference is system", () => {
+    const media = mockMedia(false);
+    render(<ThemeWatcher />);
+    expect(html().classList.contains("light")).toBe(true);
+
+    media.toggle(true);
+    expect(html().classList.contains("dark")).toBe(true);
+    expect(html().classList.contains("light")).toBe(false);
+  });
+
+  it("does not react to system changes when user chose explicit theme", () => {
+    const media = mockMedia(false);
+    render(<ThemeWatcher />);
+    const { result } = renderHook(() => useTheme());
+
+    act(() => result.current.setTheme("dark"));
+    expect(html().classList.contains("dark")).toBe(true);
+
+    media.toggle(true);
+    expect(html().classList.contains("dark")).toBe(true);
+  });
+
+  it("syncs across tabs via storage event", () => {
+    mockMedia(false);
+    render(<ThemeWatcher />);
+    expect(html().classList.contains("light")).toBe(true);
+
+    localStorage.setItem("theme", "dark");
+    window.dispatchEvent(new StorageEvent("storage", {
+      key: "theme",
+      newValue: "dark",
+      storageArea: localStorage,
+    }));
+    expect(html().classList.contains("dark")).toBe(true);
+  });
+
+  it("avoids duplicate listeners on multiple mounts", () => {
+    const media = mockMedia(false);
+    render(<><ThemeWatcher /><ThemeWatcher /></>);
     expect(media.mql.addEventListener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useTheme", () => {
+  beforeEach(() => {
+    html().className = "";
+    html().style.cssText = "";
+    localStorage.clear();
+    _reset();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("setTheme persists and applies", () => {
+    mockMedia(false);
+    render(<ThemeWatcher />);
+    const { result } = renderHook(() => useTheme());
+
+    act(() => result.current.setTheme("dark"));
+    expect(html().classList.contains("dark")).toBe(true);
+    expect(localStorage.getItem("theme")).toBe("dark");
+    expect(result.current.resolvedTheme).toBe("dark");
+    expect(result.current.theme).toBe("dark");
+  });
+
+  it("set is an alias for setTheme", () => {
+    mockMedia(false);
+    render(<ThemeWatcher />);
+    const { result } = renderHook(() => useTheme());
+
+    act(() => result.current.set("dark"));
+    expect(html().classList.contains("dark")).toBe(true);
+  });
+
+  it("get returns stored preference", () => {
+    mockMedia(false);
+    render(<ThemeWatcher />);
+    const { result } = renderHook(() => useTheme());
+
+    expect(result.current.get()).toBe("system");
+    act(() => result.current.set("dark"));
+    expect(result.current.get()).toBe("dark");
+  });
+
+  it("exposes systemTheme regardless of preference", () => {
+    const media = mockMedia(false);
+    render(<ThemeWatcher />);
+    const { result } = renderHook(() => useTheme());
+
+    expect(result.current.systemTheme).toBe("light");
+
+    act(() => media.toggle(true));
+    expect(result.current.systemTheme).toBe("dark");
+  });
+
+  it("resolvedTheme reflects forced theme", () => {
+    mockMedia(false);
+    render(<ThemeWatcher theme="dark" />);
+    const { result } = renderHook(() => useTheme());
+    expect(result.current.resolvedTheme).toBe("dark");
   });
 });
