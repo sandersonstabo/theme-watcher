@@ -1,6 +1,10 @@
 {
   "name": "theme-watcher",
   "version": "0.3.2",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandersonstabo/theme-watcher"
+  },
   "description": "Plug-and-play theme watcher for React SPAs",
   "type": "module",
   "main": "./dist/index.js",
