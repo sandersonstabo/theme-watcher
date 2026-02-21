@@ -1,9 +1,6 @@
-> [!IMPORTANT]
-> This package was authored by Opus 4.6.
-
 # theme-watcher
 
-Plug-and-play dark mode for React SPAs. Works with Tailwind, shadcn, and any CSS that styles on `class="dark"` or `data-theme`.
+Dark mode for React. Zero config, works with Tailwind, shadcn, or vanilla CSS.
 
 ## Install
 
