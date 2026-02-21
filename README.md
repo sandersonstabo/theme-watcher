@@ -8,7 +8,7 @@ Zero-dependency theme watcher. Works with React, Tailwind, shadcn, or any CSS fr
 npm i theme-watcher
 ```
 
-## Quick start
+## Usage
 
 ```tsx
 import { ThemeWatcher, useTheme } from "theme-watcher";
@@ -23,22 +23,53 @@ function App() {
 }
 
 function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme, toggleMode } = useTheme();
   return (
-    <button onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
-      Toggle
+    <button onClick={toggleMode}>
+      {resolvedTheme === "dark" ? "Light" : "Dark"}
     </button>
   );
 }
 ```
 
-That's it. By default it follows system preference, persists the choice to `localStorage`, syncs across tabs, and sets `class="dark"` + `color-scheme` on `<html>`.
+`<ThemeWatcher />` handles:
+- System preference detection (`prefers-color-scheme`)
+- localStorage persistence
+- Cross-tab synchronization
+- DOM updates (sets `class` or `data-*` attribute on `<html>`)
 
-## With Tailwind / shadcn
+## API
 
-Set `darkMode: "class"` (or `"selector"`) in your Tailwind config. No other setup needed; `<ThemeWatcher />` toggles the `dark` class that Tailwind looks for.
+### `<ThemeWatcher />`
 
-Style your tokens in CSS:
+Place once near your app root. Renders nothing.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `theme` | `"light" \| "dark"` | - | Force a specific theme (ignores storage/system) |
+| `defaultTheme` | `"light" \| "dark" \| "system"` | `"system"` | Initial theme when no stored preference |
+| `storageKey` | `string` | `"theme"` | localStorage key for persistence |
+| `attribute` | `"class" \| "data-*"` | `"class"` | Attribute set on `<html>` (e.g., `"data-theme"`) |
+| `enableColorScheme` | `boolean` | `true` | Set `color-scheme` CSS property on `<html>` |
+| `disableTransitionOnChange` | `boolean` | `false` | Disable CSS transitions during theme change |
+
+### `useTheme()`
+
+Hook for reading and controlling theme state.
+
+| Return | Type | Description |
+|--------|------|-------------|
+| `theme` | `"light" \| "dark" \| "system"` | Current stored preference |
+| `resolvedTheme` | `"light" \| "dark"` | Actual applied theme (resolves `"system"` to OS preference) |
+| `systemTheme` | `"light" \| "dark"` | Current OS preference |
+| `setTheme(t)` | `(t) => void` | Set preference (`"light"`, `"dark"`, or `"system"`) |
+| `set(t)` | `(t) => void` | Alias for `setTheme` |
+| `get()` | `() => string` | Read stored preference directly |
+| `toggleMode()` | `() => void` | Toggle between `"light"` and `"dark"` |
+
+## Tailwind / shadcn Setup
+
+Set `darkMode: "class"` in `tailwind.config.js`. No other configuration needed.
 
 ```css
 :root {
@@ -52,47 +83,23 @@ Style your tokens in CSS:
 }
 ```
 
-## API
+## Data Attribute Mode
 
-### `<ThemeWatcher />`
+For CSS frameworks that use `data-theme` instead of class:
 
-Drop once near your app root. Renders nothing.
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `theme` | `"light" \| "dark"` | - | Force a specific theme (overrides everything) |
-| `defaultTheme` | `"light" \| "dark" \| "system"` | `"system"` | Initial theme when nothing is stored |
-| `storageKey` | `string` | `"theme"` | localStorage key |
-| `attribute` | `"class" \| "data-*"` | `"class"` | HTML attribute to set on `<html>` |
-| `enableColorScheme` | `boolean` | `true` | Set `color-scheme` on `<html>` for native UI |
-| `disableTransitionOnChange` | `boolean` | `false` | Kill CSS transitions during theme switch |
-
-### `useTheme()`
-
-| Return | Type | Description |
-|--------|------|-------------|
-| `theme` | `"light" \| "dark" \| "system"` | Current preference |
-| `resolvedTheme` | `"light" \| "dark"` | Actual applied theme |
-| `systemTheme` | `"light" \| "dark"` | What the OS reports |
-| `setTheme(t)` | `(t: ThemePreference) => void` | Set and persist |
-| `set(t)` | `(t: ThemePreference) => void` | Alias for `setTheme` |
-| `get()` | `() => ThemePreference` | Read stored preference |
-
-## How it works
-
-1. On mount, reads localStorage (or falls back to `defaultTheme`).
-2. If preference is `"system"`, resolves via `prefers-color-scheme` media query.
-3. Applies resolved theme to `<html>` (class toggle or data attribute) and sets `color-scheme`.
-4. Listens to OS preference changes and `storage` events for cross-tab sync.
-5. `setTheme()` writes to localStorage, updates DOM, and notifies all `useTheme()` consumers.
-
-## Development
-
-Uses Bun for dev tooling only. The published package has zero runtime dependencies beyond React.
-
-```bash
-bun install
-bun run typecheck
-bun run test
-bun run build
+```tsx
+<ThemeWatcher attribute="data-theme" />
 ```
+
+```css
+:root[data-theme="light"] { /* ... */ }
+:root[data-theme="dark"] { /* ... */ }
+```
+
+## Behavior
+
+1. On mount: reads localStorage (falls back to `defaultTheme`)
+2. If `"system"`: resolves via `prefers-color-scheme` media query
+3. Applies to `<html>`: toggles class or sets data attribute
+4. Listens for: OS preference changes, storage events (cross-tab sync)
+5. On change: updates DOM, localStorage, and all `useTheme()` subscribers
