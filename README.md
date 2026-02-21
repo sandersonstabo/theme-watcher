@@ -1,6 +1,6 @@
 # theme-watcher
 
-Dark mode for React. Zero config, works with Tailwind, shadcn, or vanilla CSS.
+Zero-dependency theme watcher. Works with React, Tailwind, shadcn, or any CSS framework.
 
 ## Install
 
