@@ -1,6 +1,6 @@
 {
   "name": "theme-watcher",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Plug-and-play theme watcher for React SPAs",
   "type": "module",
   "main": "./dist/index.js",
