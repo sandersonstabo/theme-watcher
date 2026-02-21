@@ -17,4 +17,5 @@ export interface UseThemeReturn {
   setTheme: (theme: ThemePreference) => void;
   set: (theme: ThemePreference) => void;
   get: () => ThemePreference;
+  toggleMode: () => void;
 }

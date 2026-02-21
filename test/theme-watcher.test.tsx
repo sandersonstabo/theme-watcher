@@ -209,4 +209,40 @@ describe("useTheme", () => {
     const { result } = renderHook(() => useTheme());
     expect(result.current.resolvedTheme).toBe("dark");
   });
+
+  describe("toggleMode", () => {
+    it("toggles from light to dark", () => {
+      mockMedia(false);
+      render(<ThemeWatcher />);
+      const { result } = renderHook(() => useTheme());
+
+      expect(result.current.resolvedTheme).toBe("light");
+      act(() => result.current.toggleMode());
+      expect(result.current.resolvedTheme).toBe("dark");
+      expect(localStorage.getItem("theme")).toBe("dark");
+    });
+
+    it("toggles from dark to light", () => {
+      mockMedia(true);
+      render(<ThemeWatcher />);
+      const { result } = renderHook(() => useTheme());
+
+      expect(result.current.resolvedTheme).toBe("dark");
+      act(() => result.current.toggleMode());
+      expect(result.current.resolvedTheme).toBe("light");
+      expect(localStorage.getItem("theme")).toBe("light");
+    });
+
+    it("toggles when system preference changes", () => {
+      const media = mockMedia(false);
+      render(<ThemeWatcher />);
+      const { result } = renderHook(() => useTheme());
+
+      expect(result.current.resolvedTheme).toBe("light");
+      act(() => media.toggle(true));
+      expect(result.current.resolvedTheme).toBe("dark");
+      act(() => result.current.toggleMode());
+      expect(result.current.resolvedTheme).toBe("light");
+    });
+  });
 });

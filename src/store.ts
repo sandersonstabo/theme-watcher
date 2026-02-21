@@ -176,6 +176,13 @@ export function setTheme(next: ThemePreference) {
   update();
 }
 
+export function toggleMode() {
+  const next: Theme = resolved === "light" ? "dark" : "light";
+  preference = next;
+  writeStorage(next);
+  update();
+}
+
 export function getTheme(): ThemePreference {
   return readStorage() ?? cfg.defaultTheme;
 }
