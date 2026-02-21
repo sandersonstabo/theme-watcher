@@ -66,7 +66,7 @@ Drop once near your app root. Renders nothing.
 | `theme` | `"light" \| "dark"` | - | Force a specific theme (overrides everything) |
 | `defaultTheme` | `"light" \| "dark" \| "system"` | `"system"` | Initial theme when nothing is stored |
 | `storageKey` | `string` | `"theme"` | localStorage key |
-| `attribute` | `"class" \| \`data-\${string}\`` | `"class"` | HTML attribute to set on `<html>` |
+| `attribute` | `"class" \| "data-*"` | `"class"` | HTML attribute to set on `<html>` |
 | `enableColorScheme` | `boolean` | `true` | Set `color-scheme` on `<html>` for native UI |
 | `disableTransitionOnChange` | `boolean` | `false` | Kill CSS transitions during theme switch |
 
